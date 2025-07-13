@@ -2,6 +2,7 @@
 <html lang="fa">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TEXT CODE</title>
   <style>
     html, body {
@@ -62,10 +63,13 @@
       display: flex;
       gap: 12px;
       margin-top: 25px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: space-between;
     }
 
     button {
-      flex: 1;
+      flex: 1 1 48%;
       padding: 12px;
       background: #2196f3;
       border: none;
@@ -74,6 +78,7 @@
       font-size: 16px;
       cursor: pointer;
       transition: 0.3s;
+      min-width: 120px;
     }
 
     button:hover {
@@ -107,6 +112,32 @@
 
     .copied-toast.show {
       opacity: 1;
+    }
+
+    @media (max-width: 600px) {
+      h2 {
+        font-size: 22px;
+      }
+
+      textarea, input {
+        font-size: 15px;
+        padding: 12px;
+      }
+
+      .output {
+        font-size: 14px;
+        padding: 16px;
+      }
+
+      .buttons {
+        flex-wrap: nowrap;
+        flex-direction: row;
+        gap: 10px;
+      }
+
+      button {
+        flex: 1 1 50%;
+      }
     }
   </style>
 </head>
@@ -222,7 +253,6 @@
       setTimeout(() => toast.classList.remove("show"), 1500);
     }
 
-    // ⏬ اتصال دکمه‌ها به توابع
     document.getElementById("encryptBtn").addEventListener("click", customEncrypt);
     document.getElementById("decryptBtn").addEventListener("click", customDecrypt);
   </script>
