@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>TEXT CODE</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      direction: rtl;
+      background: linear-gradient(135deg, #e0f7fa, #fce4ec);
+      font-family: 'Tahoma', sans-serif;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      font-size: 28px;
+      margin: 10px 0 30px 0;
+    }
+
+    label {
+      font-weight: bold;
+      color: #333;
+      display: block;
+      margin-top: 20px;
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-family: Tahoma, sans-serif;
+    }
+
+    textarea {
+      height: 140px;
+    }
+
+    .password-line {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      background: #2196f3;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #1976d2;
+    }
+
+    .output {
+      margin-top: 30px;
+      background: #f1f8ff;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px dashed #90caf9;
+      font-size: 15px;
+      word-wrap: break-word;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .copied-toast {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 13px;
+      background: #4caf50;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: 0.4s;
+    }
+
+    .copied-toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>TEXT CODE</h2>
+
+    <label for="inputText">✏️ متن:</label>
+    <textarea id="inputText" placeholder="متن خود را اینجا بنویسید..."></textarea>
+
+    <label for="password">🔑 رمز (اختیاری):</label>
+    <input type="password" id="password" placeholder="رمز خود را وارد کنید">
+
+    <div class="password-line">
+      <label for="togglePassword" style="display: flex; align-items: center; gap: 6px; margin: 0;">
+        <input type="checkbox" id="togglePassword" onclick="togglePassword()">
+        نمایش
+      </label>
+    </div>
+
+    <label for="expiryHours">⏳ زمان اعتبار متن (اختیاری):</label>
+    <input type="text" id="expiryHours" placeholder="زمان را برحسب ساعت وارد کنید">
+
+    <div class="buttons">
+      <button id="encryptBtn">🔐 رمزگذاری</button>
+      <button id="decryptBtn">🔓 رمزگشایی</button>
+    </div>
+
+    <div class="output" id="outputBox" onclick="autoCopy()">
+      نتیجه در اینجا نمایش داده می‌شود...
+      <div class="copied-toast" id="copiedToast">✅ کپی شد!</div>
+    </div>
+  </div>
+
+  <script>
+    function hash(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+      }
+      return h.toString(16);
+    }
+
+    function encodeBase64(str) {
+      return btoa(unescape(encodeURIComponent(str)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function decodeBase64(str) {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      return decodeURIComponent(escape(atob(str)));
+    }
+
+    function customEncrypt() {
+      const text = document.getElementById("inputText").value.trim();
+      const pass = document.getElementById("password").value.trim();
+      const hoursRaw = document.getElementById("expiryHours").value.trim();
+      if (!text) return alert("متنی برای رمزگذاری وارد کنید.");
+
+      const salt = pass ? hash(pass).slice(0, 6) : "000000";
+      const reversed = [...text].reverse().join('');
+
+      let timestamp = 0;
+      if (hoursRaw) {
+        const hours = parseFloat(hoursRaw.replace(",", "."));
+        if (!isNaN(hours) && hours > 0) {
+          timestamp = Date.now() + hours * 3600000;
+        }
+      }
+
+      const payload = `${salt}::${timestamp}::${reversed}`;
+      const encoded = encodeBase64(payload);
+      document.getElementById("outputBox").textContent = encoded;
+    }
+
+    function customDecrypt() {
+      const input = document.getElementById("inputText").value.trim();
+      const pass = document.getElementById("password").value.trim();
+
+      if (!input) return alert("متن رمزگذاری‌شده را وارد کنید.");
+
+      try {
+        const decoded = decodeBase64(input);
+        const parts = decoded.split("::");
+        if (parts.length !== 3) throw Error();
+
+        const salt = pass ? hash(pass).slice(0, 6) : "000000";
+        const [savedSalt, timestampStr, reversedText] = parts;
+        if (salt !== savedSalt) throw Error("رمز نادرست است");
+
+        const timestamp = parseInt(timestampStr);
+        if (timestamp > 0 && Date.now() > timestamp)
+          throw Error("⏰ مهلت این پیام به پایان رسیده است.");
+
+        const original = [...reversedText].reverse().join('');
+        document.getElementById("outputBox").textContent = original;
+      } catch (e) {
+        document.getElementById("outputBox").textContent = "❌ خطا در رمزگشایی: " + e.message;
+      }
+    }
+
+    function togglePassword() {
+      const input = document.getElementById("password");
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function autoCopy() {
+      const content = document.getElementById("outputBox").textContent.trim();
+      if (!content || content === "نتیجه در اینجا نمایش داده می‌شود...") return;
+      navigator.clipboard.writeText(content);
+      const toast = document.getElementById("copiedToast");
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1500);
+    }
+
+    // ⏬ اتصال دکمه‌ها به توابع
+    document.getElementById("encryptBtn").addEventListener("click", customEncrypt);
+    document.getElementById("decryptBtn").addEventListener("click", customDecrypt);
+  </script>
+</body>
+</html>
